@@ -1,0 +1,136 @@
+import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Search, AlertCircle } from 'lucide-react';
+
+const StockValuation = () => {
+  const [ticker, setTicker] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [metrics, setMetrics] = useState(null);
+
+  const calculateValuations = (data) => {
+    const eps = data.eps || 0;
+    const price = data.price || 0;
+    const growthRate = data.growthRate || 0;
+    const bookValue = data.bookValue || 0;
+
+    return {
+      pe: price / eps,
+      pb: price / bookValue,
+      grahamValue: eps * (8.5 + 2 * growthRate) * 4.4 / 5.5, // Using 5.5 as average AAA yield
+      rule72PE: growthRate > 0 ? 72 / growthRate : 0,
+    };
+  };
+
+  const fetchStockData = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      // In a real application, you would make an API call here
+      // For demo purposes, using mock data
+      const mockData = {
+        price: 150.25,
+        eps: 8.20,
+        growthRate: 12,
+        bookValue: 45.30,
+      };
+      
+      const valuations = calculateValuations(mockData);
+      setMetrics({
+        ...mockData,
+        ...valuations,
+      });
+    } catch (err) {
+      setError('Failed to fetch stock data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Stock Valuation Calculator</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-6">
+            <Input
+              placeholder="Enter stock ticker (e.g., AAPL)"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              className="flex-1"
+            />
+            <Button 
+              onClick={fetchStockData}
+              disabled={loading || !ticker}
+            >
+              {loading ? 'Loading...' : <Search className="w-4 h-4" />}
+            </Button>
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {metrics && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-2">Current Metrics</h3>
+                    <div className="space-y-2">
+                      <p>Price: ${metrics.price.toFixed(2)}</p>
+                      <p>EPS: ${metrics.eps.toFixed(2)}</p>
+                      <p>Growth Rate: {metrics.growthRate}%</p>
+                      <p>Book Value: ${metrics.bookValue.toFixed(2)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-2">Valuations</h3>
+                    <div className="space-y-2">
+                      <p>P/E Ratio: {metrics.pe.toFixed(2)}</p>
+                      <p>P/B Ratio: {metrics.pb.toFixed(2)}</p>
+                      <p>Graham Value: ${metrics.grahamValue.toFixed(2)}</p>
+                      <p>Rule of 72 P/E: {metrics.rule72PE.toFixed(2)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2">Analysis</h3>
+                  <div className="space-y-2">
+                    <p>
+                      {metrics.price < metrics.grahamValue 
+                        ? "The stock appears undervalued based on Graham's formula."
+                        : "The stock appears overvalued based on Graham's formula."}
+                    </p>
+                    <p>
+                      {metrics.pe < metrics.rule72PE 
+                        ? "P/E ratio suggests the stock might be undervalued."
+                        : "P/E ratio suggests the stock might be overvalued."}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default StockValuation;
